@@ -1,0 +1,16 @@
+{
+  "domain": "ecovacs",
+  "name": "Ecovacs Custom",
+  "codeowners": ["@anilkusaksiz"],
+  "config_flow": true,
+  "documentation": "https://github.com/anilkusaksiz/ha-ecovacs",
+  "integration_type": "hub",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/anilkusaksiz/ha-ecovacs/issues",
+  "loggers": ["sleekxmppfs", "sucks", "deebot_client"],
+  "requirements": [
+    "py-sucks==0.9.11",
+    "deebot-client@git+https://github.com/anilkusaksiz/client.py.git@fix/r0321c-t30c-gen2"
+  ],
+  "version": "0.1.0"
+}
