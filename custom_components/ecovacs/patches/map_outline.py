@@ -34,13 +34,3 @@ def _handle_body_data_dict(
 def apply_map_outline_patch() -> None:
     """Apply support for map outline version 2."""
     OnMapInfoV2._handle_body_data_dict = classmethod(_handle_body_data_dict)
-
-    caps = upstream_r0321c.get_device_info().capabilities
-
-    _LOGGER.warning(
-        "T30C patch active: clean=%s area=%s map=%s station_actions=%s",
-        caps.clean.action.command.__name__,
-        caps.clean.action.area.__name__,
-        caps.map.set.execute.__name__ if caps.map and caps.map.set else None,
-        [action.name for action in caps.station.action.types],
-    )

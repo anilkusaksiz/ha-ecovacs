@@ -21,12 +21,17 @@ def apply_deebot_patches() -> None:
     if _PATCHED:
         return
 
-    # Replace the stock r0321c capability profile with our T30C Gen2 profile.
     upstream_r0321c.get_device_info = r0321c.get_device_info
-
-    # Accept outlineVer=2 in getMapInfo_V2 responses.
     apply_map_outline_patch()
 
-    _PATCHED = True
+    caps = upstream_r0321c.get_device_info().capabilities
 
-    _LOGGER.info("Applied custom deebot-client patches")
+    _LOGGER.warning(
+        "T30C patch active: clean=%s area=%s map=%s station_actions=%s",
+        caps.clean.action.command.__name__,
+        caps.clean.action.area.__name__,
+        caps.map.set.execute.__name__ if caps.map and caps.map.set else None,
+        [action.name for action in caps.station.action.types],
+    )
+
+    _PATCHED = True
