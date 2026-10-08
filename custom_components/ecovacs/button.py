@@ -9,10 +9,11 @@ from deebot_client.capabilities import (
     CapabilityLifeSpan,
 )
 from deebot_client.commands import StationAction
+from deebot_client.device import Device
 from deebot_client.events import LifeSpan
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import EcovacsConfigEntry
@@ -22,7 +23,20 @@ from .entity import (
     EcovacsDescriptionEntity,
     EcovacsEntity,
 )
+from .patches.scenario import (
+    CapabilityScenario,
+    Scenario,
+    ScenariosEvent,
+    get_scenario_capability,
+)
 from .util import get_supported_entities
+
+# Icons used by the ECOVACS app for scenario presets.
+SCENARIO_ICONS = {
+    "map-customize-clean": "mdi:robot-vacuum",
+    "map-customize-mop": "mdi:water",
+    "map-customize-sweepdrag": "mdi:robot-vacuum-variant",
+}
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -45,6 +59,13 @@ class EcovacsStationActionButtonEntityDescription(ButtonEntityDescription):
     """Ecovacs station action button entity description."""
 
     action: StationAction
+
+
+@dataclass(kw_only=True, frozen=True)
+class EcovacsScenarioButtonEntityDescription(ButtonEntityDescription):
+    """Ecovacs scenario clean button entity description."""
+
+    scenario_id: str
 
 
 ENTITY_DESCRIPTIONS: tuple[EcovacsButtonEntityDescription, ...] = (
@@ -109,6 +130,36 @@ async def async_setup_entry(
     )
     async_add_entities(entities)
 
+    for device in controller.devices:
+        if capability := get_scenario_capability(device.capabilities):
+            _async_setup_scenario_buttons(
+                config_entry, async_add_entities, device, capability
+            )
+
+
+@callback
+def _async_setup_scenario_buttons(
+    config_entry: EcovacsConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+    device: Device,
+    capability: CapabilityScenario,
+) -> None:
+    """Add a button per scenario, including scenarios created later in the app."""
+    added: set[str] = set()
+
+    async def on_scenarios(event: ScenariosEvent) -> None:
+        new = [scenario for scenario in event.scenarios if scenario.id not in added]
+        added.update(scenario.id for scenario in new)
+        async_add_entities(
+            EcovacsScenarioButtonEntity(device, capability, scenario)
+            for scenario in new
+        )
+
+    # The first subscription requests the scenario list from the device.
+    config_entry.async_on_unload(
+        device.events.subscribe(capability.event, on_scenarios)
+    )
+
 
 class EcovacsButtonEntity(
     EcovacsDescriptionEntity[CapabilityExecute],
@@ -153,4 +204,67 @@ class EcovacsStationActionButtonEntity(
         """Press the button."""
         await self._device.execute_command(
             self._capability.execute(self.entity_description.action)
+        )
+
+
+class EcovacsScenarioButtonEntity(
+    EcovacsDescriptionEntity[CapabilityScenario],
+    ButtonEntity,
+):
+    """Ecovacs scenario clean button entity."""
+
+    entity_description: EcovacsScenarioButtonEntityDescription
+
+    def __init__(
+        self, device: Device, capability: CapabilityScenario, scenario: Scenario
+    ) -> None:
+        """Initialize entity."""
+        super().__init__(
+            device,
+            capability,
+            EcovacsScenarioButtonEntityDescription(
+                key=f"scenario_{scenario.id}",
+                translation_key="scenario",
+                scenario_id=scenario.id,
+            ),
+        )
+        self._exists = True
+        self._update_scenario(scenario)
+
+    @property
+    @override
+    def available(self) -> bool:
+        """Return True if the scenario still exists on the device."""
+        return super().available and self._exists
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Set up the event listeners now that hass is ready."""
+        await super().async_added_to_hass()
+
+        async def on_scenarios(event: ScenariosEvent) -> None:
+            scenario = next(
+                (
+                    scenario
+                    for scenario in event.scenarios
+                    if scenario.id == self.entity_description.scenario_id
+                ),
+                None,
+            )
+            self._exists = scenario is not None
+            if scenario:
+                self._update_scenario(scenario)
+            self.async_write_ha_state()
+
+        self._subscribe(self._capability.event, on_scenarios)
+
+    def _update_scenario(self, scenario: Scenario) -> None:
+        self._attr_name = scenario.name
+        self._attr_icon = SCENARIO_ICONS.get(scenario.icon or "")
+
+    @override
+    async def async_press(self) -> None:
+        """Press the button."""
+        await self._device.execute_command(
+            self._capability.start(self.entity_description.scenario_id)
         )

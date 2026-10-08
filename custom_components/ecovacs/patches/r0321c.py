@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from deebot_client.capabilities import (
-    Capabilities,
     CapabilityClean,
     CapabilityCleanAction,
     CapabilityCustomCommand,
@@ -115,12 +114,20 @@ from deebot_client.events.auto_empty import AutoEmptyEvent
 from deebot_client.events.mop_auto_wash_frequency import MopAutoWashFrequencyEvent
 from deebot_client.models import StaticDeviceInfo
 
+from .scenario import (
+    CapabilityScenario,
+    CleanScenario,
+    GetScenarios,
+    ScenarioCapabilities,
+    ScenariosEvent,
+)
+
 
 def get_device_info() -> StaticDeviceInfo:
     """Get device info for this model."""
     return StaticDeviceInfo(
         DataType.JSON,
-        Capabilities(
+        ScenarioCapabilities(
             device_type=DeviceType.VACUUM,
             availability=CapabilityEvent(
                 AvailabilityEvent, [GetBattery(is_available_check=True)]
@@ -223,6 +230,11 @@ def get_device_info() -> StaticDeviceInfo:
             ),
             network=CapabilityEvent(NetworkInfoEvent, [GetNetInfo()]),
             play_sound=CapabilityExecute(PlaySound),
+            scenario=CapabilityScenario(
+                ScenariosEvent,
+                [GetScenarios()],
+                CleanScenario,
+            ),
             settings=CapabilitySettings(
                 advanced_mode=CapabilitySetEnable(
                     AdvancedModeEvent,

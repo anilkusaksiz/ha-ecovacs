@@ -63,6 +63,9 @@
       "reset_lifespan_weed_rope": {
         "default": "mdi:grass"
       },
+      "scenario": {
+        "default": "mdi:play-circle-outline"
+      },
       "station_action_clean_base": {
         "default": "mdi:home"
       },

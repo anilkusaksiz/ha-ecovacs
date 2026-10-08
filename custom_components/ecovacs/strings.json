@@ -110,6 +110,9 @@
       "reset_lifespan_weed_rope": {
         "name": "Reset edge trimmer line lifespan"
       },
+      "scenario": {
+        "name": "Scenario clean"
+      },
       "station_action_clean_base": {
         "name": "Clean base"
       },
