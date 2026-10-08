@@ -26,7 +26,7 @@ def apply_deebot_patches() -> None:
 
     caps = upstream_r0321c.get_device_info().capabilities
 
-    _LOGGER.warning(
+    _LOGGER.info(
         "T30C patch active: clean=%s area=%s map=%s station_actions=%s",
         caps.clean.action.command.__name__,
         caps.clean.action.area.__name__,
