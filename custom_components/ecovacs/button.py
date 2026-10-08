@@ -10,7 +10,6 @@ from deebot_client.capabilities import (
 )
 from deebot_client.commands import StationAction
 from deebot_client.events import LifeSpan
-
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
@@ -62,8 +61,10 @@ STATION_ENTITY_DESCRIPTIONS = tuple(
         action=action,
         key=f"station_action_{action.name.lower()}",
         translation_key=f"station_action_{action.name.lower()}",
+        entity_registry_enabled_default=action is StationAction.CLEAN_BASE,
     )
     for action in SUPPORTED_STATION_ACTIONS
+    if action is StationAction.CLEAN_BASE
 )
 
 

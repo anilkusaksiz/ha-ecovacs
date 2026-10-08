@@ -14,6 +14,7 @@ adds additional support and fixes that are not yet available upstream.
 - Mop washing station action
 - Mop drying station action
 - Dustbin emptying
+- Live station switches for mop washing, mop drying, and dustbin emptying
 - T30C-specific capability fixes
 
 ## Installation

@@ -1,12 +1,13 @@
 """Config flow for Ecovacs mqtt integration."""
 
-from collections.abc import Mapping
-from functools import partial
 import logging
 import ssl
+from collections.abc import Mapping
+from functools import partial
 from typing import Any, override
 from urllib.parse import urlparse
 
+import probatio
 from aiohttp import ClientError
 from deebot_client.authentication import Authenticator, create_rest_config
 from deebot_client.const import UNDEFINED, UndefinedType
@@ -18,8 +19,6 @@ from deebot_client.exceptions import (
 )
 from deebot_client.mqtt_client import MqttClient, create_mqtt_config
 from deebot_client.util import md5
-import probatio
-
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlow, ConfigFlowResult
 from homeassistant.const import (
     CONF_COUNTRY,
@@ -147,7 +146,7 @@ class EcovacsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ecovacs."""
 
     VERSION = 1
-    MINOR_VERSION = 2
+    MINOR_VERSION = 3
 
     _mode: InstanceMode = InstanceMode.CLOUD
     _input: dict[str, Any]

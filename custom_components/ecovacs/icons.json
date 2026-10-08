@@ -67,10 +67,10 @@
         "default": "mdi:home"
       },
       "station_action_dry_mop": {
-        "default": "mdi:broom"
+        "default": "mdi:heat-wave"
       },
       "station_action_empty_dustbin": {
-        "default": "mdi:delete-restore"
+        "default": "mdi:delete-empty"
       },
       "station_action_wash_mop": {
         "default": "mdi:water-sync"
@@ -237,6 +237,15 @@
       },
       "safe_protect": {
         "default": "mdi:shield-half-full"
+      },
+      "station_action_dry_mop": {
+        "default": "mdi:broom"
+      },
+      "station_action_empty_dustbin": {
+        "default": "mdi:delete-restore"
+      },
+      "station_action_wash_mop": {
+        "default": "mdi:water-sync"
       },
       "true_detect": {
         "default": "mdi:laser-pointer"
