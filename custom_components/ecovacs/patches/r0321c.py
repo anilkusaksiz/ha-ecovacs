@@ -32,7 +32,7 @@ from deebot_client.commands.json.carpet import (
 )
 from deebot_client.commands.json.charge import Charge
 from deebot_client.commands.json.charge_state import GetChargeState
-from deebot_client.commands.json.clean import CleanAreaV2, CleanV2, GetCleanInfo
+from deebot_client.commands.json.clean import CleanAreaV2, CleanV2, GetCleanInfoV2
 from deebot_client.commands.json.clean_count import GetCleanCount, SetCleanCount
 from deebot_client.commands.json.clean_logs import GetCleanLogs
 from deebot_client.commands.json.clean_preference import (
@@ -268,7 +268,7 @@ def get_device_info() -> StaticDeviceInfo:
                 StateEvent,
                 [
                     GetChargeState(),
-                    GetCleanInfo(),
+                    GetCleanInfoV2(),
                 ],
             ),
             station=CapabilityStation(

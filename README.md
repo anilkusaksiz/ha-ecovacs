@@ -16,6 +16,7 @@ adds additional support and fixes that are not yet available upstream.
 - Dustbin emptying
 - Live station switches for mop washing, mop drying, and dustbin emptying
 - Scenario Clean buttons: one button per scenario saved in the ECOVACS app
+- Working "Last job" event on the T30C (finished or manually stopped)
 - T30C-specific capability fixes
 
 ## Installation
