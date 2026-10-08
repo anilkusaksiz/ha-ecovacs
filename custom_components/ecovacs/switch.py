@@ -3,9 +3,11 @@
 from dataclasses import dataclass
 from typing import Any, override
 
-from deebot_client.capabilities import CapabilitySetEnable
+from deebot_client.capabilities import CapabilityExecuteTypes, CapabilitySetEnable
+from deebot_client.commands import StationAction
 from deebot_client.events import EnableEvent
-
+from deebot_client.events.station import State as StationState
+from deebot_client.events.station import StationEvent
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
@@ -26,6 +28,14 @@ class EcovacsSwitchEntityDescription(
     EcovacsCapabilityEntityDescription[CapabilitySetEnable],
 ):
     """Ecovacs switch entity description."""
+
+
+@dataclass(kw_only=True, frozen=True)
+class EcovacsStationActionSwitchEntityDescription(SwitchEntityDescription):
+    """Describe a state-backed station action switch."""
+
+    action: StationAction
+    active_state: StationState
 
 
 ENTITY_DESCRIPTIONS: tuple[EcovacsSwitchEntityDescription, ...] = (
@@ -109,6 +119,28 @@ ENTITY_DESCRIPTIONS: tuple[EcovacsSwitchEntityDescription, ...] = (
 )
 
 
+STATION_ENTITY_DESCRIPTIONS = (
+    EcovacsStationActionSwitchEntityDescription(
+        action=StationAction.EMPTY_DUSTBIN,
+        active_state=StationState.EMPTYING_DUSTBIN,
+        key="station_action_empty_dustbin",
+        translation_key="station_action_empty_dustbin",
+    ),
+    EcovacsStationActionSwitchEntityDescription(
+        action=StationAction.DRY_MOP,
+        active_state=StationState.DRYING_MOP,
+        key="station_action_dry_mop",
+        translation_key="station_action_dry_mop",
+    ),
+    EcovacsStationActionSwitchEntityDescription(
+        action=StationAction.WASH_MOP,
+        active_state=StationState.WASHING_MOP,
+        key="station_action_wash_mop",
+        translation_key="station_action_wash_mop",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: EcovacsConfigEntry,
@@ -118,6 +150,15 @@ async def async_setup_entry(
     controller = config_entry.runtime_data
     entities: list[EcovacsEntity] = get_supported_entities(
         controller, EcovacsSwitchEntity, ENTITY_DESCRIPTIONS
+    )
+    entities.extend(
+        EcovacsStationActionSwitchEntity(
+            device, device.capabilities.station.action, description
+        )
+        for device in controller.devices
+        if device.capabilities.station
+        for description in STATION_ENTITY_DESCRIPTIONS
+        if description.action in device.capabilities.station.action.types
     )
     if entities:
         async_add_entities(entities)
@@ -153,3 +194,42 @@ class EcovacsSwitchEntity(
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
         await self._device.execute_command(self._capability.set(False))
+
+
+class EcovacsStationActionSwitchEntity(
+    EcovacsDescriptionEntity[CapabilityExecuteTypes[StationAction]],
+    SwitchEntity,
+):
+    """Represent a station action using its live work state."""
+
+    entity_description: EcovacsStationActionSwitchEntityDescription
+
+    _attr_is_on = False
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to station state updates."""
+        await super().async_added_to_hass()
+
+        async def on_event(event: StationEvent) -> None:
+            self._attr_is_on = event.state == self.entity_description.active_state
+            self.async_write_ha_state()
+
+        self._subscribe(StationEvent, on_event)
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Start the station action."""
+        await self._device.execute_command(
+            self._capability.execute(self.entity_description.action)
+        )
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Stop the station action."""
+        await self._device.execute_command(
+            self._device.capabilities.custom.set(
+                "stationAction",
+                {"act": 4, "type": self.entity_description.action.value},
+            )
+        )

@@ -329,6 +329,15 @@
       "safe_protect": {
         "name": "Safe protect"
       },
+      "station_action_dry_mop": {
+        "name": "Mop drying"
+      },
+      "station_action_empty_dustbin": {
+        "name": "Dust emptying"
+      },
+      "station_action_wash_mop": {
+        "name": "Mop washing"
+      },
       "true_detect": {
         "name": "True detect"
       }
