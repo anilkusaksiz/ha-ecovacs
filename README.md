@@ -15,6 +15,7 @@ adds additional support and fixes that are not yet available upstream.
 - Mop drying station action
 - Dustbin emptying
 - Live station switches for mop washing, mop drying, and dustbin emptying
+- Scenario Clean buttons: one button per scenario saved in the ECOVACS app
 - T30C-specific capability fixes
 
 ## Installation
@@ -27,6 +28,19 @@ Repository type: **Integration**
 
 This custom component uses the same `ecovacs` domain as the built-in Home Assistant
 integration and therefore replaces it when installed.
+
+## Scenario Clean
+
+Every scenario saved under **Scenario Clean** in the ECOVACS app is exposed as a
+button on the device, named after the scenario (for example
+`button.r2_d2_just_vacuum`). Pressing it starts that scenario, the same as the
+play button in the app.
+
+The list is read from the robot when Home Assistant starts. Scenarios added in
+the app later get a button on the next refresh, which happens on reload,
+restart, or when you call `homeassistant.update_entity` on a scenario button.
+Renamed scenarios update their button name, and deleted scenarios make their
+button unavailable.
 
 ## Development
 
