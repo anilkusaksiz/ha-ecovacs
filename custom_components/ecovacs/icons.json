@@ -70,7 +70,7 @@
         "default": "mdi:heat-wave"
       },
       "station_action_empty_dustbin": {
-        "default": "mdi:delete"
+        "default": "mdi:delete-empty"
       },
       "station_action_wash_mop": {
         "default": "mdi:water-sync"
