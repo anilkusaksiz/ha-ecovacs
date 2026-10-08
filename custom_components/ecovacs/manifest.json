@@ -10,7 +10,7 @@
   "loggers": ["sleekxmppfs", "sucks", "deebot_client"],
   "requirements": [
     "py-sucks==0.9.11",
-    "deebot-client@git+https://github.com/anilkusaksiz/client.py.git@fix/r0321c-t30c-gen2"
+    "deebot-client==18.6.0"
   ],
   "version": "0.1.0"
 }

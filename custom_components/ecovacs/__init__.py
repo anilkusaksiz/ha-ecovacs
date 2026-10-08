@@ -7,6 +7,7 @@ from homeassistant.const import CONF_DEVICE_ID, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
+from .patches import apply_deebot_patches
 
 from .const import CONF_OVERRIDE_REST_URL, DOMAIN
 from .controller import EcovacsController
@@ -38,6 +39,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> bool:
     """Set up this integration using UI."""
+    apply_deebot_patches()
+
     controller = EcovacsController(hass, entry.data)
 
     entry.async_on_unload(controller.teardown)
