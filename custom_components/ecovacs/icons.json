@@ -67,10 +67,10 @@
         "default": "mdi:home"
       },
       "station_action_dry_mop": {
-        "default": "mdi:broom"
+        "default": "mdi:heat-wave"
       },
       "station_action_empty_dustbin": {
-        "default": "mdi:delete-restore"
+        "default": "mdi:delete"
       },
       "station_action_wash_mop": {
         "default": "mdi:water-sync"

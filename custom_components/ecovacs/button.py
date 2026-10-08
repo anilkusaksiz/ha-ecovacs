@@ -64,6 +64,7 @@ STATION_ENTITY_DESCRIPTIONS = tuple(
         entity_registry_enabled_default=action is StationAction.CLEAN_BASE,
     )
     for action in SUPPORTED_STATION_ACTIONS
+    if action is StationAction.CLEAN_BASE
 )
 
 

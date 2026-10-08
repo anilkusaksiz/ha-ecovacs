@@ -1,16 +1,16 @@
 """Support for Ecovacs Deebot vacuums."""
 
-from sucks import VacBot
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
-from .patches import apply_deebot_patches
+from sucks import VacBot
 
 from .const import CONF_OVERRIDE_REST_URL, DOMAIN
 from .controller import EcovacsController
+from .patches import apply_deebot_patches
 from .services import async_setup_services
 from .util import get_client_device_id
 
@@ -78,5 +78,21 @@ async def async_migrate_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) ->
             data=entry.data | {CONF_DEVICE_ID: device_id},
             minor_version=2,
         )
+
+    if entry.version == 1 and entry.minor_version < 3:
+        entity_registry = er.async_get(hass)
+        legacy_station_action_suffixes = (
+            "_station_action_dry_mop",
+            "_station_action_empty_dustbin",
+            "_station_action_wash_mop",
+        )
+        for entity in er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        ):
+            if entity.domain == Platform.BUTTON and entity.unique_id.endswith(
+                legacy_station_action_suffixes
+            ):
+                entity_registry.async_remove(entity.entity_id)
+        hass.config_entries.async_update_entry(entry, minor_version=3)
 
     return True
