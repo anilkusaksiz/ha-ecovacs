@@ -7,6 +7,7 @@ import logging
 import deebot_client.hardware.r0321c as upstream_r0321c
 
 from . import r0321c
+from .last_job import apply_last_job_patch
 from .map_outline import apply_map_outline_patch
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ def apply_deebot_patches() -> None:
 
     upstream_r0321c.get_device_info = r0321c.get_device_info
     apply_map_outline_patch()
+    apply_last_job_patch()
 
     caps = upstream_r0321c.get_device_info().capabilities
 
