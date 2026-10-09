@@ -2,9 +2,15 @@
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, fields, replace
+from datetime import timedelta
 from typing import Any, Self, override
 
-from deebot_client.capabilities import CapabilityEvent, CapabilityLifeSpan, DeviceType
+from deebot_client.capabilities import (
+    CapabilityEvent,
+    CapabilityLifeSpan,
+    CapabilityMap,
+    DeviceType,
+)
 from deebot_client.device import Device
 from deebot_client.events import (
     BatteryEvent,
@@ -13,10 +19,16 @@ from deebot_client.events import (
     LifeSpan,
     LifeSpanEvent,
     NetworkInfoEvent,
+    PositionsEvent,
+    RoomsEvent,
+    StateEvent,
     StatsEvent,
     TotalStatsEvent,
     station,
 )
+from deebot_client.events.map import MapInfoEvent
+from deebot_client.models import State
+from deebot_client.rs.map import PositionType
 from sucks import VacBot
 
 from homeassistant.components.sensor import (
@@ -33,13 +45,15 @@ from homeassistant.const import (
     UnitOfArea,
     UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.helpers.typing import UNDEFINED, StateType, UndefinedType
 
 from . import EcovacsConfigEntry
 from .const import LEGACY_SUPPORTED_LIFESPANS, SUPPORTED_LIFESPANS
+from .current_room import Polygon, find_room, parse_polygon, parse_room_polygons
 from .entity import (
     EcovacsCapabilityEntityDescription,
     EcovacsDescriptionEntity,
@@ -263,6 +277,13 @@ async def async_setup_entry(
         for device in controller.devices
         if (capability := device.capabilities.error)
     )
+    entities.extend(
+        EcovacsCurrentRoomSensor(device, map_capability)
+        for device in controller.devices
+        if (map_capability := device.capabilities.map)
+        and map_capability.rooms
+        and map_capability.position
+    )
 
     async_add_entities(entities)
 
@@ -388,6 +409,116 @@ class EcovacsErrorSensor(
             self.async_write_ha_state()
 
         self._subscribe(self._capability.event, on_event)
+
+
+# How often to ask for the robot's position while it is cleaning or returning.
+POSITION_REFRESH_INTERVAL = timedelta(seconds=10)
+
+
+class EcovacsCurrentRoomSensor(
+    EcovacsEntity[CapabilityMap],
+    SensorEntity,
+):
+    """Room the robot is in, from the map and the robot's position."""
+
+    entity_description = SensorEntityDescription(
+        key="current_room",
+        translation_key="current_room",
+    )
+
+    def __init__(self, device: Device, capability: CapabilityMap) -> None:
+        """Initialize entity."""
+        super().__init__(device, capability)
+        self._room_names: dict[int, str] = {}
+        self._room_polygons: dict[int, Polygon] = {}
+        self._map_polygons: dict[int, Polygon] = {}
+        self._position: tuple[int, int] | None = None
+        self._cancel_position_refresh: CALLBACK_TYPE | None = None
+
+    def _update_room(self) -> None:
+        polygons = self._room_polygons or self._map_polygons
+        room_id = (
+            find_room(polygons, *self._position) if self._position is not None else None
+        )
+        self._attr_native_value = (
+            self._room_names.get(room_id) if room_id is not None else None
+        )
+
+    def _set_rooms(self, event: RoomsEvent) -> None:
+        self._room_names = {room.id: room.name for room in event.rooms}
+        # Older models send the outline with the room; newer ones in the map info.
+        self._room_polygons = {
+            room.id: polygon
+            for room in event.rooms
+            if (polygon := parse_polygon(room.coordinates))
+        }
+
+    def _set_position(self, event: PositionsEvent) -> None:
+        self._position = next(
+            (
+                (position.x, position.y)
+                for position in event.positions
+                if position.type == PositionType.DEEBOT
+            ),
+            self._position,
+        )
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Set up the event listeners now that hass is ready."""
+        await super().async_added_to_hass()
+
+        events = self._device.events
+        if rooms := events.get_last_event(RoomsEvent):
+            self._set_rooms(rooms)
+        if map_info := events.get_last_event(MapInfoEvent):
+            self._map_polygons = parse_room_polygons(map_info.info)
+        if positions := events.get_last_event(PositionsEvent):
+            self._set_position(positions)
+        self._update_room()
+
+        async def on_rooms(event: RoomsEvent) -> None:
+            self._set_rooms(event)
+            self._update_room()
+            self.async_write_ha_state()
+
+        async def on_map_info(event: MapInfoEvent) -> None:
+            self._map_polygons = parse_room_polygons(event.info)
+            self._update_room()
+            self.async_write_ha_state()
+
+        async def on_position(event: PositionsEvent) -> None:
+            self._set_position(event)
+            self._update_room()
+            self.async_write_ha_state()
+
+        @callback
+        def refresh_position(_now: Any) -> None:
+            events.request_refresh(PositionsEvent)
+
+        async def on_state(event: StateEvent) -> None:
+            # The robot does not always push its position, so ask for it
+            # while it is moving.
+            moving = event.state in (State.CLEANING, State.RETURNING)
+            if moving and self._cancel_position_refresh is None:
+                self._cancel_position_refresh = async_track_time_interval(
+                    self.hass, refresh_position, POSITION_REFRESH_INTERVAL
+                )
+            elif not moving:
+                self._stop_position_refresh()
+                events.request_refresh(PositionsEvent)
+
+        self._subscribe(self._capability.rooms.event, on_rooms)
+        self._subscribe(MapInfoEvent, on_map_info)
+        self._subscribe(self._capability.position.event, on_position)
+        self._subscribe(StateEvent, on_state)
+        self.async_on_remove(self._stop_position_refresh)
+
+    @callback
+    def _stop_position_refresh(self) -> None:
+        if self._cancel_position_refresh is not None:
+            self._cancel_position_refresh()
+            self._cancel_position_refresh = None
 
 
 class EcovacsLegacyBatterySensor(EcovacsLegacyEntity, SensorEntity):
