@@ -173,6 +173,13 @@
                     "smart": "Smart"
                 }
             },
+            "efficiency_mode": {
+                "name": "Efficiency mode",
+                "state": {
+                    "energy_efficient_mode": "Energy efficient",
+                    "standard_mode": "Standard"
+                }
+            },
             "water_amount": {
                 "name": "Water flow level",
                 "state": {
@@ -329,6 +336,9 @@
             "move_up_warning": {
                 "name": "Move up warning"
             },
+            "ota_auto_update": {
+                "name": "Automatic firmware updates"
+            },
             "safe_protect": {
                 "name": "Safe protect"
             },
@@ -341,8 +351,14 @@
             "station_action_wash_mop": {
                 "name": "Mop washing"
             },
+            "sweep_mode": {
+                "name": "Mop only"
+            },
             "true_detect": {
                 "name": "True detect"
+            },
+            "voice_assistant": {
+                "name": "Voice assistant"
             }
         },
         "vacuum": {

@@ -105,6 +105,9 @@
       "auto_empty": {
         "default": "mdi:delete-empty"
       },
+      "efficiency_mode": {
+        "default": "mdi:leaf"
+      },
       "water_amount": {
         "default": "mdi:water"
       },
@@ -238,6 +241,9 @@
       "move_up_warning": {
         "default": "mdi:arrow-up-bold-box-outline"
       },
+      "ota_auto_update": {
+        "default": "mdi:update"
+      },
       "safe_protect": {
         "default": "mdi:shield-half-full"
       },
@@ -250,8 +256,14 @@
       "station_action_wash_mop": {
         "default": "mdi:water-sync"
       },
+      "sweep_mode": {
+        "default": "mdi:water"
+      },
       "true_detect": {
         "default": "mdi:laser-pointer"
+      },
+      "voice_assistant": {
+        "default": "mdi:microphone-message"
       }
     }
   },
