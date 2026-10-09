@@ -5,7 +5,7 @@ from typing import Any, override
 
 from deebot_client.capabilities import CapabilityExecuteTypes, CapabilitySetEnable
 from deebot_client.commands import StationAction
-from deebot_client.events import EnableEvent
+from deebot_client.events import EnableEvent, OtaEvent
 from deebot_client.events.station import State as StationState
 from deebot_client.events.station import StationEvent
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
@@ -110,12 +110,30 @@ ENTITY_DESCRIPTIONS: tuple[EcovacsSwitchEntityDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
     ),
     EcovacsSwitchEntityDescription(
+        capability_fn=lambda c: c.settings.sweep_mode,
+        key="sweep_mode",
+        translation_key="sweep_mode",
+        entity_category=EntityCategory.CONFIG,
+    ),
+    EcovacsSwitchEntityDescription(
+        capability_fn=lambda c: c.settings.voice_assistant,
+        key="voice_assistant",
+        translation_key="voice_assistant",
+        entity_category=EntityCategory.CONFIG,
+    ),
+    EcovacsSwitchEntityDescription(
         capability_fn=lambda c: c.settings.border_spin,
         key="border_spin",
         translation_key="border_spin",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.CONFIG,
     ),
+)
+
+OTA_ENTITY_DESCRIPTION = SwitchEntityDescription(
+    key="ota_auto_update",
+    translation_key="ota_auto_update",
+    entity_category=EntityCategory.CONFIG,
 )
 
 
@@ -160,6 +178,11 @@ async def async_setup_entry(
         for description in STATION_ENTITY_DESCRIPTIONS
         if description.action in device.capabilities.station.action.types
     )
+    entities.extend(
+        EcovacsOtaSwitchEntity(device, ota, OTA_ENTITY_DESCRIPTION)
+        for device in controller.devices
+        if isinstance(ota := device.capabilities.settings.ota, CapabilitySetEnable)
+    )
     if entities:
         async_add_entities(entities)
 
@@ -181,6 +204,45 @@ class EcovacsSwitchEntity(
 
         async def on_event(event: EnableEvent) -> None:
             self._attr_is_on = event.enabled
+            self.async_write_ha_state()
+
+        self._subscribe(self._capability.event, on_event)
+
+    @override
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on."""
+        await self._device.execute_command(self._capability.set(True))
+
+    @override
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off."""
+        await self._device.execute_command(self._capability.set(False))
+
+
+class EcovacsOtaSwitchEntity(
+    EcovacsDescriptionEntity[CapabilitySetEnable[OtaEvent]],
+    SwitchEntity,
+):
+    """Automatic firmware updates switch."""
+
+    _attr_is_on = False
+    _supports_auto = True
+
+    @property
+    @override
+    def available(self) -> bool:
+        """Return True if the device is online and supports automatic updates."""
+        return super().available and self._supports_auto
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Set up the event listeners now that hass is ready."""
+        await super().async_added_to_hass()
+
+        async def on_event(event: OtaEvent) -> None:
+            self._supports_auto = event.support_auto
+            if event.auto_enabled is not None:
+                self._attr_is_on = event.auto_enabled
             self.async_write_ha_state()
 
         self._subscribe(self._capability.event, on_event)
