@@ -232,6 +232,9 @@
             }
         },
         "sensor": {
+            "current_room": {
+                "name": "Current room"
+            },
             "error": {
                 "name": "Error",
                 "state_attributes": {
