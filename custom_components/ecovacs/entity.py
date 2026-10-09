@@ -10,11 +10,18 @@ from deebot_client.events import AvailabilityEvent
 from deebot_client.events.base import Event
 from sucks import EventListener, VacBot
 
+from homeassistant.core import CALLBACK_TYPE, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity, EntityDescription
+from homeassistant.helpers.event import async_call_later
 
 from .const import DOMAIN
+
+# deebot-client reports the device unavailable as soon as one availability
+# check (every 60 s) gets no answer in time. Single misses are common, so only
+# show the entities as unavailable when the device stays unreachable.
+UNAVAILABLE_GRACE_SECONDS = 150
 
 
 class EcovacsEntity[CapabilityEntityT](Entity):
@@ -39,6 +46,7 @@ class EcovacsEntity[CapabilityEntityT](Entity):
         self._device = device
         self._capability = capability
         self._subscribed_events: set[type[Event]] = set()
+        self._cancel_unavailable: CALLBACK_TYPE | None = None
 
     @property
     @override
@@ -71,11 +79,32 @@ class EcovacsEntity[CapabilityEntityT](Entity):
 
         if not self._always_available:
 
-            async def on_available(event: AvailabilityEvent) -> None:
-                self._attr_available = event.available
+            @callback
+            def set_unavailable(_now: Any) -> None:
+                self._cancel_unavailable = None
+                self._attr_available = False
                 self.async_write_ha_state()
 
+            async def on_available(event: AvailabilityEvent) -> None:
+                if event.available:
+                    self._cancel_pending_unavailable()
+                    if not self._attr_available:
+                        self._attr_available = True
+                        self.async_write_ha_state()
+                elif self._attr_available and self._cancel_unavailable is None:
+                    self._cancel_unavailable = async_call_later(
+                        self.hass, UNAVAILABLE_GRACE_SECONDS, set_unavailable
+                    )
+
             self._subscribe(AvailabilityEvent, on_available)
+            self.async_on_remove(self._cancel_pending_unavailable)
+
+    @callback
+    def _cancel_pending_unavailable(self) -> None:
+        """Cancel a scheduled switch to unavailable."""
+        if self._cancel_unavailable is not None:
+            self._cancel_unavailable()
+            self._cancel_unavailable = None
 
     def _subscribe[EventT: Event](
         self,
