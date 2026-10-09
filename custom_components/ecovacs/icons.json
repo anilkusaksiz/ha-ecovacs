@@ -105,8 +105,20 @@
       "auto_empty": {
         "default": "mdi:delete-empty"
       },
-      "efficiency_mode": {
-        "default": "mdi:leaf"
+      "carpet_recognition": {
+        "default": "mdi:texture-box"
+      },
+      "drying_duration": {
+        "default": "mdi:fan-clock"
+      },
+      "dust_power": {
+        "default": "mdi:delete-empty"
+      },
+      "wash_frequency": {
+        "default": "mdi:timer-sync"
+      },
+      "wash_mode": {
+        "default": "mdi:water-thermometer"
       },
       "water_amount": {
         "default": "mdi:water"
@@ -217,6 +229,9 @@
       "advanced_mode": {
         "default": "mdi:tune"
       },
+      "auto_empty_enabled": {
+        "default": "mdi:delete-restore"
+      },
       "border_spin": {
         "default": "mdi:rotate-right"
       },
@@ -226,11 +241,20 @@
       "carpet_auto_fan_boost": {
         "default": "mdi:fan-auto"
       },
+      "carpet_fine": {
+        "default": "mdi:rug"
+      },
+      "carpet_first": {
+        "default": "mdi:rug"
+      },
       "child_lock": {
         "default": "mdi:teddy-bear"
       },
       "clean_preference": {
         "default": "mdi:broom"
+      },
+      "cleaning_solution": {
+        "default": "mdi:bottle-tonic-plus"
       },
       "continuous_cleaning": {
         "default": "mdi:refresh-auto"
@@ -238,8 +262,23 @@
       "cross_map_border_warning": {
         "default": "mdi:border-none-variant"
       },
+      "do_not_disturb": {
+        "default": "mdi:sleep"
+      },
+      "dry_mop": {
+        "default": "mdi:water-off"
+      },
+      "floor_direction": {
+        "default": "mdi:view-sequential"
+      },
+      "mop_expand": {
+        "default": "mdi:border-outside"
+      },
       "move_up_warning": {
         "default": "mdi:arrow-up-bold-box-outline"
+      },
+      "off_peak_charging": {
+        "default": "mdi:battery-clock"
       },
       "ota_auto_update": {
         "default": "mdi:update"
@@ -256,14 +295,8 @@
       "station_action_wash_mop": {
         "default": "mdi:water-sync"
       },
-      "sweep_mode": {
-        "default": "mdi:water"
-      },
       "true_detect": {
         "default": "mdi:laser-pointer"
-      },
-      "voice_assistant": {
-        "default": "mdi:microphone-message"
       }
     }
   },

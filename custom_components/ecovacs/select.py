@@ -9,7 +9,6 @@ from deebot_client.command import CommandWithMessageHandling
 from deebot_client.device import Device
 from deebot_client.events import WorkModeEvent, auto_empty
 from deebot_client.events.base import Event
-from deebot_client.events.efficiency_mode import EfficiencyModeEvent
 from deebot_client.events.map import CachedMapInfoEvent, MajorMapEvent
 from deebot_client.events.water_info import WaterAmountEvent
 
@@ -17,6 +16,7 @@ from homeassistant.components.select import SelectEntity, SelectEntityDescriptio
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import EcovacsConfigEntry
 from .entity import (
@@ -24,6 +24,7 @@ from .entity import (
     EcovacsDescriptionEntity,
     EcovacsEntity,
 )
+from .patches.app_settings import get_app_settings
 from .util import get_name_key, get_supported_entities
 
 
@@ -63,14 +64,6 @@ ENTITY_DESCRIPTIONS: tuple[EcovacsSelectEntityDescription, ...] = (
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.CONFIG,
     ),
-    EcovacsSelectEntityDescription[EfficiencyModeEvent](
-        capability_fn=lambda caps: caps.settings.efficiency_mode,
-        current_option_fn=lambda e: get_name_key(e.efficiency),
-        options_fn=lambda cap: [get_name_key(mode) for mode in cap.types],
-        key="efficiency_mode",
-        translation_key="efficiency_mode",
-        entity_category=EntityCategory.CONFIG,
-    ),
     EcovacsSelectEntityDescription[auto_empty.AutoEmptyEvent](
         capability_fn=lambda caps: caps.station.auto_empty if caps.station else None,
         current_option_fn=lambda e: get_name_key(e.frequency) if e.frequency else None,
@@ -82,6 +75,31 @@ ENTITY_DESCRIPTIONS: tuple[EcovacsSelectEntityDescription, ...] = (
 )
 
 
+def _app_setting(key: str) -> EcovacsSelectEntityDescription:
+    """Describe a select for a setting from the ECOVACS app."""
+    return EcovacsSelectEntityDescription(
+        capability_fn=lambda caps: getattr(get_app_settings(caps), key, None),
+        current_option_fn=lambda e: e.value,
+        options_fn=lambda cap: list(cap.types),
+        key=key,
+        translation_key=key,
+        entity_category=EntityCategory.CONFIG,
+    )
+
+
+APP_SETTING_DESCRIPTIONS: tuple[EcovacsSelectEntityDescription, ...] = (
+    _app_setting("drying_duration"),
+    _app_setting("dust_power"),
+    _app_setting("wash_frequency"),
+    _app_setting("wash_mode"),
+)
+
+# The robot has no get command for this, so it keeps its last known option.
+APP_SETTING_RESTORE_DESCRIPTIONS: tuple[EcovacsSelectEntityDescription, ...] = (
+    _app_setting("carpet_recognition"),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: EcovacsConfigEntry,
@@ -90,7 +108,12 @@ async def async_setup_entry(
     """Add entities for passed config_entry in HA."""
     controller = config_entry.runtime_data
     entities = get_supported_entities(
-        controller, EcovacsSelectEntity, ENTITY_DESCRIPTIONS
+        controller, EcovacsSelectEntity, ENTITY_DESCRIPTIONS + APP_SETTING_DESCRIPTIONS
+    )
+    entities.extend(
+        get_supported_entities(
+            controller, EcovacsRestoreSelectEntity, APP_SETTING_RESTORE_DESCRIPTIONS
+        )
     )
     entities.extend(
         EcovacsActiveMapSelectEntity(device, map_cap, major)
@@ -140,6 +163,17 @@ class EcovacsSelectEntity[EventT: Event](
         await self._device.execute_command(
             self.entity_description.set_option_fn(self._capability, option)
         )
+
+
+class EcovacsRestoreSelectEntity(EcovacsSelectEntity, RestoreEntity):
+    """Select for a setting the robot only reports when it changes."""
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Restore the last known option, then listen for changes."""
+        if (last := await self.async_get_last_state()) and last.state in self.options:
+            self._attr_current_option = last.state
+        await super().async_added_to_hass()
 
 
 class EcovacsActiveMapSelectEntity(

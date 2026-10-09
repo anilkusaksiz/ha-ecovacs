@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from deebot_client.capabilities import (
     CapabilityClean,
     CapabilityCleanAction,
@@ -36,19 +38,11 @@ from deebot_client.commands.json.child_lock import GetChildLock, SetChildLock
 from deebot_client.commands.json.clean import CleanAreaV2, CleanV2, GetCleanInfoV2
 from deebot_client.commands.json.clean_count import GetCleanCount, SetCleanCount
 from deebot_client.commands.json.clean_logs import GetCleanLogs
-from deebot_client.commands.json.clean_preference import (
-    GetCleanPreference,
-    SetCleanPreference,
-)
 from deebot_client.commands.json.continuous_cleaning import (
     GetContinuousCleaning,
     SetContinuousCleaning,
 )
 from deebot_client.commands.json.custom import CustomCommand
-from deebot_client.commands.json.efficiency import (
-    GetEfficiencyMode,
-    SetEfficiencyMode,
-)
 from deebot_client.commands.json.error import GetError
 from deebot_client.commands.json.fan_speed import GetFanSpeed, SetFanSpeed
 from deebot_client.commands.json.life_span import GetLifeSpan, ResetLifeSpan
@@ -75,12 +69,7 @@ from deebot_client.commands.json.play_sound import PlaySound
 from deebot_client.commands.json.pos import GetPos
 from deebot_client.commands.json.relocation import SetRelocationState
 from deebot_client.commands.json.stats import GetStats, GetTotalStats
-from deebot_client.commands.json.sweep_mode import GetSweepMode, SetSweepMode
 from deebot_client.commands.json.true_detect import GetTrueDetect, SetTrueDetect
-from deebot_client.commands.json.voice_assistant_state import (
-    GetVoiceAssistantState,
-    SetVoiceAssistantState,
-)
 from deebot_client.commands.json.volume import GetVolume, SetVolume
 from deebot_client.commands.json.water_info import GetWaterInfo, SetWaterInfo
 from deebot_client.commands.json.work_mode import GetWorkMode, SetWorkMode
@@ -95,7 +84,6 @@ from deebot_client.events import (
     ChildLockEvent,
     CleanCountEvent,
     CleanLogEvent,
-    CleanPreferenceEvent,
     ContinuousCleaningEvent,
     CustomCommandEvent,
     ErrorEvent,
@@ -115,10 +103,8 @@ from deebot_client.events import (
     StateEvent,
     StationEvent,
     StatsEvent,
-    SweepModeEvent,
     TotalStatsEvent,
     TrueDetectEvent,
-    VoiceAssistantStateEvent,
     VolumeEvent,
     WorkMode,
     WorkModeEvent,
@@ -126,10 +112,10 @@ from deebot_client.events import (
     water_info,
 )
 from deebot_client.events.auto_empty import AutoEmptyEvent
-from deebot_client.events.efficiency_mode import EfficiencyMode, EfficiencyModeEvent
 from deebot_client.events.mop_auto_wash_frequency import MopAutoWashFrequencyEvent
 from deebot_client.models import StaticDeviceInfo
 
+from .app_settings import AppSettings
 from .scenario import (
     CapabilityScenario,
     CleanScenario,
@@ -139,12 +125,20 @@ from .scenario import (
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class T30CCapabilities(ScenarioCapabilities):
+    """T30C capabilities, including the settings from the ECOVACS app."""
+
+    app_settings: AppSettings | None = None
+
+
 def get_device_info() -> StaticDeviceInfo:
     """Get device info for this model."""
     return StaticDeviceInfo(
         DataType.JSON,
-        ScenarioCapabilities(
+        T30CCapabilities(
             device_type=DeviceType.VACUUM,
+            app_settings=AppSettings(),
             availability=CapabilityEvent(
                 AvailabilityEvent, [GetBattery(is_available_check=True)]
             ),
@@ -159,11 +153,6 @@ def get_device_info() -> StaticDeviceInfo:
                 ),
                 count=CapabilitySet(CleanCountEvent, [GetCleanCount()], SetCleanCount),
                 log=CapabilityEvent(CleanLogEvent, [GetCleanLogs()]),
-                preference=CapabilitySetEnable(
-                    CleanPreferenceEvent,
-                    [GetCleanPreference()],
-                    SetCleanPreference,
-                ),
                 work_mode=CapabilitySetTypes(
                     event=WorkModeEvent,
                     get=[GetWorkMode()],
@@ -265,15 +254,6 @@ def get_device_info() -> StaticDeviceInfo:
                 child_lock=CapabilitySetEnable(
                     ChildLockEvent, [GetChildLock()], SetChildLock
                 ),
-                efficiency_mode=CapabilitySetTypes(
-                    event=EfficiencyModeEvent,
-                    get=[GetEfficiencyMode()],
-                    set=SetEfficiencyMode,
-                    types=(
-                        EfficiencyMode.ENERGY_EFFICIENT_MODE,
-                        EfficiencyMode.STANDARD_MODE,
-                    ),
-                ),
                 mop_auto_wash_frequency=CapabilityNumber(
                     event=MopAutoWashFrequencyEvent,
                     get=[GetMopAutoWashFrequency()],
@@ -282,18 +262,10 @@ def get_device_info() -> StaticDeviceInfo:
                     max=60,
                 ),
                 ota=CapabilitySetEnable(OtaEvent, [GetOta()], SetOta),
-                sweep_mode=CapabilitySetEnable(
-                    SweepModeEvent, [GetSweepMode()], SetSweepMode
-                ),
                 true_detect=CapabilitySetEnable(
                     TrueDetectEvent,
                     [GetTrueDetect()],
                     SetTrueDetect,
-                ),
-                voice_assistant=CapabilitySetEnable(
-                    VoiceAssistantStateEvent,
-                    [GetVoiceAssistantState()],
-                    SetVoiceAssistantState,
                 ),
                 volume=CapabilitySet(
                     VolumeEvent,
