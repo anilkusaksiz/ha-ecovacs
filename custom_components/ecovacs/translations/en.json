@@ -173,11 +173,43 @@
                     "smart": "Smart"
                 }
             },
-            "efficiency_mode": {
-                "name": "Efficiency mode",
+            "carpet_recognition": {
+                "name": "Carpet recognition",
                 "state": {
-                    "energy_efficient_mode": "Energy efficient",
-                    "standard_mode": "Standard"
+                    "standard": "Standard",
+                    "sensitive": "Sensitive"
+                }
+            },
+            "drying_duration": {
+                "name": "Hot air drying duration",
+                "state": {
+                    "two_hours": "2 hours",
+                    "three_hours": "3 hours",
+                    "four_hours": "4 hours"
+                }
+            },
+            "dust_power": {
+                "name": "Dust collection power",
+                "state": {
+                    "standard": "Standard",
+                    "quiet": "Quiet"
+                }
+            },
+            "wash_frequency": {
+                "name": "Mop auto-wash frequency",
+                "state": {
+                    "by_room": "By room",
+                    "every_10_min": "Every 10 minutes",
+                    "every_15_min": "Every 15 minutes",
+                    "every_25_min": "Every 25 minutes"
+                }
+            },
+            "wash_mode": {
+                "name": "Mop wash method",
+                "state": {
+                    "eco": "Eco",
+                    "standard": "Standard",
+                    "deep": "Deep"
                 }
             },
             "water_amount": {
@@ -312,6 +344,9 @@
             "advanced_mode": {
                 "name": "Advanced mode"
             },
+            "auto_empty_enabled": {
+                "name": "Auto-empty"
+            },
             "border_spin": {
                 "name": "Border spin"
             },
@@ -321,11 +356,20 @@
             "carpet_auto_fan_boost": {
                 "name": "Carpet auto-boost suction"
             },
+            "carpet_fine": {
+                "name": "Carpet fine cleaning"
+            },
+            "carpet_first": {
+                "name": "Clean carpet first"
+            },
             "child_lock": {
                 "name": "Child lock"
             },
             "clean_preference": {
                 "name": "Clean preference"
+            },
+            "cleaning_solution": {
+                "name": "Automatic cleaning solution"
             },
             "continuous_cleaning": {
                 "name": "Continuous cleaning"
@@ -333,8 +377,23 @@
             "cross_map_border_warning": {
                 "name": "Cross map border warning"
             },
+            "do_not_disturb": {
+                "name": "Do not disturb"
+            },
+            "dry_mop": {
+                "name": "Forced operation without water"
+            },
+            "floor_direction": {
+                "name": "Clean along floor"
+            },
+            "mop_expand": {
+                "name": "TruEdge adaptive edge mopping"
+            },
             "move_up_warning": {
                 "name": "Move up warning"
+            },
+            "off_peak_charging": {
+                "name": "Off-peak charging"
             },
             "ota_auto_update": {
                 "name": "Automatic firmware updates"
@@ -351,14 +410,8 @@
             "station_action_wash_mop": {
                 "name": "Mop washing"
             },
-            "sweep_mode": {
-                "name": "Mop only"
-            },
             "true_detect": {
                 "name": "True detect"
-            },
-            "voice_assistant": {
-                "name": "Voice assistant"
             }
         },
         "vacuum": {

@@ -381,7 +381,8 @@ class EcovacsErrorSensor(
         await super().async_added_to_hass()
 
         async def on_event(event: ErrorEvent) -> None:
-            self._attr_native_value = event.code
+            # Code 0 means no error, which is easier to read as text.
+            self._attr_native_value = "No error" if event.code == 0 else event.code
             self._attr_extra_state_attributes = {CONF_DESCRIPTION: event.description}
 
             self.async_write_ha_state()
