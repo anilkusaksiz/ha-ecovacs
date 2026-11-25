@@ -3,6 +3,7 @@
 import logging
 import ssl
 from collections.abc import Mapping
+from dataclasses import asdict
 from functools import partial
 from typing import Any, override
 from urllib.parse import urlparse
@@ -33,6 +34,7 @@ from homeassistant.helpers.typing import VolDictType
 from homeassistant.util.ssl import get_default_no_verify_context
 
 from .const import (
+    CONF_ACCOUNT_CREDENTIALS,
     CONF_OVERRIDE_MQTT_URL,
     CONF_OVERRIDE_REST_URL,
     CONF_VERIFICATION_CODE,
@@ -146,7 +148,7 @@ class EcovacsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Ecovacs."""
 
     VERSION = 1
-    MINOR_VERSION = 3
+    MINOR_VERSION = 4
 
     _mode: InstanceMode = InstanceMode.CLOUD
     _input: dict[str, Any]
@@ -205,6 +207,10 @@ class EcovacsConfigFlow(ConfigFlow, domain=DOMAIN):
     def _finish_flow(self) -> ConfigFlowResult:
         """Create or update the config entry."""
         self._input[CONF_DEVICE_ID] = self._device_id
+        if self._authenticator is not None and (
+            account := self._authenticator.account_credentials
+        ):
+            self._input[CONF_ACCOUNT_CREDENTIALS] = asdict(account)
         if self.source == SOURCE_REAUTH:
             return self.async_update_reload_and_abort(
                 self._get_reauth_entry(), data_updates=self._input
