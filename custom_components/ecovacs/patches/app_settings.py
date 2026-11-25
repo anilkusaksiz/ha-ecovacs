@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 import deebot_client.messages.json as json_messages
 from deebot_client.capabilities import CapabilitySetEnable, CapabilitySetTypes
-from deebot_client.commands.json.auto_empty import GetAutoEmpty, SetAutoEmpty
+from deebot_client.commands.json.auto_empty import GetAutoEmpty
 from deebot_client.commands.json.common import ExecuteCommand, JsonGetCommand
 from deebot_client.events import EnableEvent, Event
 from deebot_client.events.auto_empty import AutoEmptyEvent
@@ -427,9 +427,6 @@ def _switch_state_capability(key: str) -> CapabilitySetEnable:
 class AppSettings:
     """T30C settings from the ECOVACS app."""
 
-    auto_empty_enabled: CapabilitySetEnable = CapabilitySetEnable(
-        AutoEmptyEvent, [GetAutoEmptyWithPower()], lambda enable: SetAutoEmpty(enable)
-    )
     carpet_first: CapabilitySetEnable = _switch_state_capability("carpetCleaningFirst")
     carpet_fine: CapabilitySetEnable = _switch_state_capability("carpetCleaningFine")
     carpet_recognition: CapabilitySetTypes = CapabilitySetTypes(

@@ -37,11 +37,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> None:
     """Set up this integration using UI."""
     apply_deebot_patches()
 
-    controller = EcovacsController(hass, entry.data)
+    controller = EcovacsController(hass, entry)
 
     entry.async_on_unload(controller.teardown)
 
@@ -59,15 +59,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> b
             name=f"{entry.title}_wait_connect_{device.vacuum['did']}",
         )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> None:
     """Unload config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    await hass.config_entries.async_unload_platforms_or_raise(entry, PLATFORMS)
 
 
-async def async_migrate_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> bool:
+async def async_migrate_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) -> None:
     """Migrate an old entry."""
     if entry.version == 1 and entry.minor_version < 2:
         # Persist the client device ID, which was generated on every start before
@@ -95,4 +94,24 @@ async def async_migrate_entry(hass: HomeAssistant, entry: EcovacsConfigEntry) ->
                 entity_registry.async_remove(entity.entity_id)
         hass.config_entries.async_update_entry(entry, minor_version=3)
 
-    return True
+    if entry.version == 1 and entry.minor_version < 4:
+        # The T30C auto-empty switch became the upstream auto_empty switch;
+        # move the entity over so its entity ID and history stay the same
+        entity_registry = er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        ):
+            if entity.domain != Platform.SWITCH or not entity.unique_id.endswith(
+                "_auto_empty_enabled"
+            ):
+                continue
+            new_unique_id = entity.unique_id.removesuffix("_enabled")
+            if entity_registry.async_get_entity_id(
+                Platform.SWITCH, DOMAIN, new_unique_id
+            ):
+                entity_registry.async_remove(entity.entity_id)
+            else:
+                entity_registry.async_update_entity(
+                    entity.entity_id, new_unique_id=new_unique_id
+                )
+        hass.config_entries.async_update_entry(entry, minor_version=4)
